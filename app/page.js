@@ -10,6 +10,13 @@ const DEFAULT_DATA = {
   supplyDeficit: 80000,
 };
 
+const DEFAULT_CONTEXT = [
+  "한국은 리튬 전량 수입 의존",
+  "2026.1~2월 대중국 수입 비중 44.6%로 다변화 진행 중",
+  "EV + AI 데이터센터 ESS 수요 동시 급증",
+  "JP모건 2026년 리튬 가격 톤당 17,500달러 전망",
+];
+
 const RISK_FACTORS = [
   { key: "priceVolatility", label: "가격 변동성", weight: 0.15, icon: "📉", unit: "6개월 변동률" },
   { key: "importDependency", label: "수입 의존도", weight: 0.25, icon: "🚢", unit: "대중국 비중" },
@@ -127,9 +134,11 @@ function ScoreBar({ score, label, icon, weight, detail }) {
 
 export default function Dashboard() {
   const [data, setData] = useState(DEFAULT_DATA);
+  const [contextItems, setContextItems] = useState(DEFAULT_CONTEXT);
   const [aiResult, setAiResult] = useState(null);
   const [loading, setLoading] = useState(false);
   const [showInputs, setShowInputs] = useState(false);
+  const [showContext, setShowContext] = useState(false);
   const [error, setError] = useState(null);
 
   const volatility = calcVolatility(data.priceNow, data.price6MonthAgo);
@@ -156,26 +165,52 @@ export default function Dashboard() {
     setError(null);
     setAiResult(null);
 
-    const prompt = `당신은 핵심광물 수급 리스크 전문 분석가입니다. 다음 데이터를 기반으로 한국의 리튬 수급 리스크를 분석해주세요.
+    const prompt = `당신은 핵심광물 수급 리스크 전문 분석가입니다. 아래 리스크 진단 모델과 실측값을 바탕으로 한국의 리튬 수급 리스크를 분석해주세요.
 
-[리스크 진단 결과]
-- 종합 리스크 수준: ${risk.level} (${totalScore.toFixed(2)}/3.00)
+[리스크 진단 모델 — 5요인 가중평균, 1~3점]
+1. 가격 변동성 (가중치 15%)
+   - HIGH(3점): 6개월 변동률 ≥ 30%
+   - MEDIUM(2점): 10% ≤ 변동률 < 30%
+   - LOW(1점): 변동률 < 10%
 
-[요인별 분석]
-1. 가격 변동성: ${scores.priceVolatility}/3점 - ${details.priceVolatility}
-2. 수입 의존도: ${scores.importDependency}/3점 - ${details.importDependency}
-3. 생산 집중도: ${scores.productionConcentration}/3점 - ${details.productionConcentration}
-4. 지정학적 리스크: ${scores.geopoliticalRisk}/3점 - ${details.geopoliticalRisk}
-5. 수급 균형: ${scores.supplyDemandGap}/3점 - ${details.supplyDemandGap}
+2. 수입 의존도 (가중치 25%) ★최고 가중치
+   - HIGH(3점): 대중국 수입비중 ≥ 60%
+   - MEDIUM(2점): 40% ≤ 비중 < 60%
+   - LOW(1점): 비중 < 40%
+
+3. 생산 집중도 (가중치 15%)
+   - HIGH(3점): 상위 3국 점유율 ≥ 80%
+   - MEDIUM(2점): 60% ≤ 점유율 < 80%
+   - LOW(1점): 점유율 < 60%
+
+4. 지정학적 리스크 (가중치 20%)
+   - HIGH(3점): 수출규제·무역갈등 이벤트 ≥ 3건/12개월
+   - MEDIUM(2점): 1~2건
+   - LOW(1점): 0건
+
+5. 수급 균형 (가중치 25%) ★최고 가중치
+   - HIGH(3점): 공급부족 ≥ 50,000톤 LCE
+   - MEDIUM(2점): 0 < 부족량 < 50,000톤
+   - LOW(1점): 공급 충족 또는 과잉
+
+[종합 판정 기준]
+- HIGH: 종합점수 ≥ 2.3 / MEDIUM: 1.7~2.3 / LOW: 1.7 미만
+
+[현재 측정값 및 진단 결과]
+- 종합 리스크: ${risk.level} (${totalScore.toFixed(2)}/3.00)
+1. 가격 변동성: ${scores.priceVolatility}/3점 — ${details.priceVolatility}
+2. 수입 의존도: ${scores.importDependency}/3점 — ${details.importDependency}
+3. 생산 집중도: ${scores.productionConcentration}/3점 — ${details.productionConcentration}
+4. 지정학적 리스크: ${scores.geopoliticalRisk}/3점 — ${details.geopoliticalRisk}
+5. 수급 균형: ${scores.supplyDemandGap}/3점 — ${details.supplyDemandGap}
 
 [추가 맥락]
-- 한국은 리튬 전량 수입 의존
-- 2026.1~2월 대중국 수입 비중 44.6%로 다변화 진행 중
-- EV + AI 데이터센터 ESS 수요 동시 급증
-- JP모건 2026년 리튬 가격 톤당 17,500달러 전망
+${contextItems.map(item => `- ${item}`).join("\n")}
+
+각 요인이 임계값을 어떻게 초과했는지 명시하고, 가중치가 높은 요인(수입의존도·수급균형)을 중심으로 서술하세요.
 
 반드시 아래 JSON 형식으로만 응답하세요. 다른 텍스트 없이 JSON만 출력:
-{"summary":"종합 판단 3문장 이내","causes":["주요 원인 1 (구체적 수치 포함)","주요 원인 2","주요 원인 3"],"strategies":["대응 전략 1 (구체적 행동 포함)","대응 전략 2","대응 전략 3"],"outlook":"향후 전망 3문장 이내"}`;
+{"summary":"종합 판단 3문장 이내","causes":["주요 원인 1 (임계값 초과 근거 포함)","주요 원인 2","주요 원인 3"],"strategies":["대응 전략 1 (구체적 행동 포함)","대응 전략 2","대응 전략 3"],"outlook":"향후 전망 3문장 이내"}`;
 
     try {
       const res = await fetch("/api/analyze", {
@@ -328,6 +363,78 @@ export default function Dashboard() {
                 padding: "8px 16px", borderRadius: 8, border: "1px solid rgba(148,163,184,0.2)",
                 background: "transparent", color: "#94a3b8", fontSize: 12, cursor: "pointer",
               }}>
+                ↺ 기본값으로 리셋
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Context Editor */}
+        <button onClick={() => setShowContext(!showContext)} style={{
+          width: "100%", padding: "14px", borderRadius: 12,
+          border: "1px solid rgba(167,139,250,0.25)", background: "rgba(167,139,250,0.06)",
+          color: "#a78bfa", fontSize: 13, fontWeight: 600, cursor: "pointer", marginBottom: 14,
+          transition: "all 0.2s",
+        }}>
+          {showContext ? "▲ 추가 맥락 닫기" : "▼ 추가 맥락 편집 (AI 분석 배경 정보)"}
+        </button>
+
+        {showContext && (
+          <div style={{
+            background: "rgba(255,255,255,0.02)",
+            border: "1px solid rgba(167,139,250,0.15)",
+            borderRadius: 16, padding: 20, marginBottom: 20,
+          }}>
+            <div style={{ fontSize: 11, color: "#94a3b8", marginBottom: 14, lineHeight: 1.6 }}>
+              AI 분석 시 참고할 배경 정보입니다. 상황 변화에 따라 자유롭게 수정·추가·삭제하세요.
+            </div>
+            {contextItems.map((item, i) => (
+              <div key={i} style={{ display: "flex", gap: 8, marginBottom: 8, alignItems: "center" }}>
+                <input
+                  type="text"
+                  value={item}
+                  onChange={e => {
+                    const updated = [...contextItems];
+                    updated[i] = e.target.value;
+                    setContextItems(updated);
+                  }}
+                  style={{
+                    flex: 1, padding: "9px 12px", borderRadius: 8,
+                    border: "1px solid rgba(255,255,255,0.12)", background: "rgba(255,255,255,0.05)",
+                    color: "#e2e8f0", fontSize: 13, outline: "none", boxSizing: "border-box",
+                  }}
+                />
+                <button
+                  onClick={() => setContextItems(contextItems.filter((_, idx) => idx !== i))}
+                  style={{
+                    padding: "9px 12px", borderRadius: 8, border: "1px solid rgba(220,38,38,0.3)",
+                    background: "rgba(220,38,38,0.08)", color: "#f87171", fontSize: 13,
+                    cursor: "pointer", flexShrink: 0,
+                  }}
+                >
+                  삭제
+                </button>
+              </div>
+            ))}
+            <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
+              <button
+                onClick={() => setContextItems([...contextItems, ""])}
+                style={{
+                  padding: "8px 16px", borderRadius: 8,
+                  border: "1px solid rgba(167,139,250,0.3)", background: "rgba(167,139,250,0.08)",
+                  color: "#a78bfa", fontSize: 12, cursor: "pointer",
+                }}
+              >
+                + 항목 추가
+              </button>
+              <button
+                onClick={() => setContextItems(DEFAULT_CONTEXT)}
+                style={{
+                  padding: "8px 16px", borderRadius: 8,
+                  border: "1px solid rgba(148,163,184,0.2)", background: "transparent",
+                  color: "#94a3b8", fontSize: 12, cursor: "pointer",
+                }}
+              >
                 ↺ 기본값으로 리셋
               </button>
             </div>
