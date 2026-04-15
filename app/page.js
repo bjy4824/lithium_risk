@@ -54,8 +54,8 @@ function RiskGauge({ score }) {
   ];
 
   return (
-    <div style={{ position: "relative", width: size, height: size / 2 + 40, margin: "0 auto" }}>
-      <svg width={size} height={size / 2 + 20} viewBox={`0 0 ${size} ${size / 2 + 20}`}>
+    <div style={{ width: size, margin: "0 auto", textAlign: "center" }}>
+      <svg width={size} height={size / 2 + 30} viewBox={`0 0 ${size} ${size / 2 + 30}`}>
         {segs.map((seg, i) => {
           const sa = (seg.s * Math.PI) / 180, ea = (seg.e * Math.PI) / 180;
           return (
@@ -75,8 +75,12 @@ function RiskGauge({ score }) {
           style={{ transition: "all 0.8s ease" }}
         />
         <circle cx={cx} cy={cy} r="7" fill={risk.color} />
+        {/* 구역 레이블 */}
+        <text x={cx - r + 2} y={cy + 22} fontSize="11" fill="#16a34a" textAnchor="middle" opacity={0.8}>LOW</text>
+        <text x={cx} y={cy - r - 8} fontSize="11" fill="#d97706" textAnchor="middle" opacity={0.8}>MED</text>
+        <text x={cx + r - 2} y={cy + 22} fontSize="11" fill="#dc2626" textAnchor="middle" opacity={0.8}>HIGH</text>
       </svg>
-      <div style={{ position: "absolute", bottom: 0, left: "50%", transform: "translateX(-50%)", textAlign: "center" }}>
+      <div style={{ textAlign: "center", marginTop: 6 }}>
         <div style={{
           fontSize: 38, fontWeight: 800, color: risk.color, letterSpacing: 6,
           fontFamily: "'Bebas Neue', sans-serif",
