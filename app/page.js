@@ -165,7 +165,10 @@ export default function Dashboard() {
     setError(null);
     setAiResult(null);
 
+    const today = new Date().toLocaleDateString("ko-KR", { year: "numeric", month: "long", day: "numeric" });
+
     const prompt = `당신은 핵심광물 수급 리스크 전문 분석가입니다. 아래 리스크 진단 모델과 실측값을 바탕으로 한국의 리튬 수급 리스크를 분석해주세요.
+분석 기준일: ${today}
 
 [리스크 진단 모델 — 5요인 가중평균, 1~3점]
 1. 가격 변동성 (가중치 15%)
