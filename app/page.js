@@ -205,9 +205,11 @@ ${contextItems.map(item => `- ${item}`).join("\n")}
       const raw = result.text || "";
       const codeBlock = raw.match(/```(?:json)?\s*(\{[\s\S]*?\})\s*```/);
       const jsonMatch = codeBlock ? codeBlock[1] : (raw.match(/\{[\s\S]*\}/) || [])[0];
-      if (!jsonMatch) throw new Error("JSON을 찾을 수 없습니다");
-      const parsed = JSON.parse(jsonMatch);
-      if (!parsed.summary) throw new Error("응답 형식 오류");
+      if (!jsonMatch) throw new Error(`JSON을 찾을 수 없습니다. 원문 응답:\n${raw || "(빈 응답)"}`);
+      let parsed;
+      try { parsed = JSON.parse(jsonMatch); }
+      catch (parseErr) { throw new Error(`JSON 파싱 실패: ${parseErr.message}\n원문:\n${jsonMatch}`); }
+      if (!parsed.summary) throw new Error(`응답 형식 오류 — 수신된 키: ${Object.keys(parsed).join(", ") || "없음"}`);
       setAiResult(parsed);
     } catch (e) {
       setError(e.message);
