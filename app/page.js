@@ -167,7 +167,8 @@ export default function Dashboard() {
   const runAI = async () => {
     setLoading(true); setError(null); setAiResult(null);
     const today = new Date().toLocaleDateString("ko-KR", { year: "numeric", month: "long", day: "numeric" });
-    const prompt = `당신은 핵심광물 수급 리스크 전문 분석가입니다. 아래 리스크 진단 모델과 실측값을 바탕으로 한국의 리튬 수급 리스크를 분석해주세요.
+    const prompt = `당신은 산업통상자원부 자문 수준의 핵심광물 공급망 리스크 전문 분석가입니다.
+아래 정량 진단 결과를 바탕으로, 정책 보고서에 인용 가능한 수준의 전문적 분석을 작성해주세요.
 분석 기준일: ${today}
 
 [리스크 진단 모델 — 5요인 가중평균, 1~3점]
@@ -177,15 +178,21 @@ export default function Dashboard() {
 4. 지정학적 리스크 (가중치 20%): HIGH≥3건, MEDIUM 1~2건, LOW 0건
 5. 수급 균형 (가중치 25%): HIGH≥50000톤, MEDIUM 0~50000톤, LOW 충족
 
-[현재 측정값]
+[현재 측정값 및 진단 결과]
 - 종합 리스크: ${risk.level} (${totalScore.toFixed(2)}/3.00)
 ${RISK_FACTORS.map((f, i) => `${i + 1}. ${f.label}: ${scores[f.key]}/3 — ${details[f.key]}`).join("\n")}
 
 [추가 맥락]
 ${contextItems.map(item => `- ${item}`).join("\n")}
 
-반드시 아래 JSON 형식으로만 응답하세요:
-{"summary":"종합 판단 3문장 이내","causes":["원인 1","원인 2","원인 3"],"strategies":["전략 1","전략 2","전략 3"],"outlook":"향후 전망 3문장 이내"}`;
+[작성 지침]
+- summary: 종합 리스크 판정 근거를 가중치 높은 요인 중심으로 서술. 수치를 구체적으로 인용할 것. 4~5문장.
+- causes: 각 원인마다 ① 해당 지표가 임계값을 얼마나 초과했는지 ② 그것이 한국 공급망에 미치는 구체적 영향을 포함. 3가지.
+- strategies: 각 전략마다 ① 담당 주체(산업부·KOTRA·기업 등) ② 단기(~1년)/중기(1~3년) 구분 ③ 기대 효과를 명시. 3가지.
+- outlook: 리스크 완화 또는 심화 시나리오를 모두 포함하고, 핵심 변수(가격·정책·수요)를 언급. 불확실성도 솔직히 서술. 4~5문장.
+
+반드시 아래 JSON 형식으로만 응답하세요. 다른 텍스트 없이 JSON만 출력:
+{"summary":"...","causes":["...","...","..."],"strategies":["...","...","..."],"outlook":"..."}`;
 
     try {
       const res = await fetch("/api/analyze", {
