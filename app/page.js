@@ -202,9 +202,11 @@ ${contextItems.map(item => `- ${item}`).join("\n")}
       });
       const result = await res.json();
       if (result.error) throw new Error(result.error);
-      const jsonMatch = (result.text || "").match(/\{[\s\S]*\}/);
+      const raw = result.text || "";
+      const codeBlock = raw.match(/```(?:json)?\s*(\{[\s\S]*?\})\s*```/);
+      const jsonMatch = codeBlock ? codeBlock[1] : (raw.match(/\{[\s\S]*\}/) || [])[0];
       if (!jsonMatch) throw new Error("JSON을 찾을 수 없습니다");
-      const parsed = JSON.parse(jsonMatch[0]);
+      const parsed = JSON.parse(jsonMatch);
       if (!parsed.summary) throw new Error("응답 형식 오류");
       setAiResult(parsed);
     } catch (e) {

@@ -21,10 +21,7 @@ export async function POST(request) {
         model: "claude-sonnet-4-6",
         max_tokens: 2500,
         system: "You are a JSON-only API. Respond with valid JSON only. No markdown, no code blocks, no explanations. Output must start with { and end with }.",
-        messages: [
-          { role: "user", content: prompt },
-          { role: "assistant", content: "{" },
-        ],
+        messages: [{ role: "user", content: prompt }],
       }),
     });
 
@@ -37,7 +34,7 @@ export async function POST(request) {
     }
 
     const data = await res.json();
-    const text = "{" + (data.content || [])
+    const text = (data.content || [])
       .filter((item) => item.type === "text")
       .map((item) => item.text)
       .join("\n");
